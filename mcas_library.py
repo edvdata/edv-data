@@ -27,7 +27,9 @@
 # xlrd==2.0.1
 
 import os.path
+import itertools
 import requests
+from time import sleep
 import pandas as pd
 from bs4 import BeautifulSoup
 from os.path import join, isdir, abspath, pathsep
@@ -294,6 +296,61 @@ class MCASExtract:
         self.data_frame.to_csv(writefn, header=False, index=False)
 
 
+    def process_reports(self, request_params, report, output_directory, sleep_time=10):
+        """
+        Process reports by looping through all combinations of request parameters,
+        fetching reports, and saving them as CSV files.
+
+        Args:
+            request_params (dict): A dictionary where keys are parameter names and values are lists of possible values.
+            report: The report object with methods to manipulate and export data.
+            output_directory (str): Directory where CSV files will be saved.
+            sleep_time (int): Time to wait between each request (in seconds).
+        """
+
+        print("Script will request the following parameters: ")
+        for key, values in request_params.items():
+            print(f"request_params['{key}'] = {values}")
+
+        # Generate all combinations of parameters using itertools.product
+        param_keys = request_params.keys()
+        param_values = request_params.values()
+
+        try:
+            for combination in itertools.product(*param_values):
+                # Build the parameter dictionary dynamically
+                param2 = dict(zip(param_keys, combination))
+
+                sleep(sleep_time)  # Throttle requests
+
+                # Print out the parameters being used for this iteration
+                print(f"Requesting parameters: {param2}")
+
+                # Call report methods
+                report.check_parameters = False
+                report.get_report_real(parameters=param2)
+                report.remove_header_row()
+
+                # Add necessary columns (assuming the parameter names are part of the column names)
+                for i, key in enumerate(param_keys):
+                    report.add_column(i, key.split('$')[-1], param2[key])
+
+                # Create a CSV filename based on parameter values
+                filename = "-".join(map(str, combination)) + ".csv"
+                csvfilenamebase = os.path.join(output_directory, filename)
+
+                # Ensure the directory exists
+                os.makedirs(os.path.dirname(csvfilenamebase), exist_ok=True)
+
+                # Write the CSV file
+                report.write_csv(csvfilenamebase)
+
+        except MCASException as e:
+            print(f"MCASExtract Error: {e}")
+            exit(-1)
+
+
+
 
 def error(lstr):
     print(lstr)
@@ -438,5 +495,6 @@ def get_mcas_data(url, output_directory='./', report_type='DISTRICT',
 
     except Exception as e:
         print("Fatal Error: Decode of data failed: {}".format(e))
+
 
 
