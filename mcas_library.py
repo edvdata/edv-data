@@ -1,70 +1,103 @@
+"""
+This module contains the MCAS library, which allows the user to interact with the
+Massachusetts Comprehensive Assessment System.
 
+The MCAS library is a Python container class used for accessing MCAS forms and the website.
 
+The library contains the following classes:
 
-#
-# Massachusetts MCAS data extractor - will download data from the Massachusetts MCAS site
-# and format it to .xlsx and .csv files in an output directory
-#
-# Created by Kurt Overberg for Boston Schools Fund
-# (C) 2022 Xrtic Consulting
-#
-# Libraries needed for this script:
-#
-# beautifulsoup4==4.10.0
-# certifi==2021.10.8
-# charset-normalizer==2.0.12
-# et-xmlfile==1.1.0
-# idna==3.3
-# numpy==1.22.3
-# openpyxl==3.0.9
-# pandas==1.4.1
-# python-dateutil==2.8.2
-# pytz==2022.1
-# requests==2.27.1
-# six==1.16.0
-# soupsieve==2.3.1
-# urllib3==1.26.9
-# xlrd==2.0.1
+- `MCASExtract`: A class used to access MCAS forms and the website.
 
-import os.path
+The library also contains the following functions:
+
+- [process_reports](cci:1:///mcas_library.py:289:4-352:20): A function that
+processes reports by looping through all combinations of request parameters, fetching reports, and
+saving them as CSV files.
+- [write_xlsx](cci:1:///mcas_library.py:260:4-269:29): A function that
+writes a Pandas DataFrame to an Excel file.
+
+The library requires the following libraries:
+
+- `beautifulsoup4`
+- `certifi`
+- `charset-normalizer`
+- `et-xmlfile`
+- `idna`
+- `numpy`
+- `openpyxl`
+- `pandas`
+- `python-dateutil`
+- `pytz`
+- `requests`
+- `six`
+- `soupsieve`
+- `urllib3`
+- `xlrd`
+
+This library was created by Kurt Overberg for Boston Schools Fund (C) 2022 Xrtic Consulting.
+"""
+
 import itertools
-import requests
-from time import sleep
-import pandas as pd
-from bs4 import BeautifulSoup
-from os.path import join, isdir, abspath, pathsep
-from openpyxl.utils.dataframe import dataframe_to_rows
-from openpyxl import Workbook
-from io import BytesIO
-
+import os.path
+import re
 import sys
+from io import BytesIO
+from time import sleep
 
+import pandas as pd
+import requests
+from bs4 import BeautifulSoup
 
-report_type = 'DISTRICT'
-year = '2018'
-grade = 'AL'
-school_type = 'ALL'
-sub_group = 'AL:AL'
 output_directory = './'
 isDebug = False
 
-report_url = "https://profiles.doe.mass.edu/statereport/mcas.aspx"
-extra_fields = dict()
+report_url = ""
+extra_fields = {}
 session = requests.session()
 list_options = False
-reports = dict()
+reports = {}
 
+
+# Create a class docstring
 
 class MCASException(Exception):
+    """
+    Basic MCASException class
+
+    """
     pass
 
 
 class MCASExtract:
-    selects = dict()
-    reports = dict()
-    extra_fields = dict()
+    """
+    This class is used to access MCAS forms and the website.
+
+    Attributes:
+        selects (dict): A dictionary containing all the select elements found on the form.
+        reports (dict): A dictionary containing all the reports available for the form.
+        extra_fields (dict): A dictionary containing all the extra hidden input fields found on the form.
+        session (requests.Session): The session object used for making HTTP requests.
+        url (str): The URL of the form.
+        data_frame (pandas.DataFrame): The data frame containing the extracted data.
+        xlsfn (str): The name of the Excel file containing the extracted data.
+        csvfn (str): The name of the CSV file containing the extracted data.
+        check_parameters (bool): A flag indicating whether to check the validity of the parameters.
+
+    Methods:
+        __init__(self, mcas_url, check_parameters=True): Initializes the MCASExtract object with the given URL and optional check_parameters flag.
+        get_url(self): Returns the URL of the form.
+        print_report_options(self): Prints the available report options for the form.
+        get_parameters(self): Returns a dictionary of all the available parameters for the form.
+        get_report(self, report_name, parameters=None): Retrieves the report with the given report_name and optional parameters.
+        process_report(self, report_name, parameters=None): Processes the report with the given report_name and optional parameters.
+        download_report(self, report_name, parameters=None): Downloads the report with the given report_name and optional parameters.
+        save_data_frame(self, report_name, parameters=None): Saves the data frame containing the extracted data to a CSV file.
+        save_excel(self, report_name, parameters=None): Saves the data frame containing the extracted data to an Excel file.
+    """
+    selects = {}
+    reports = {}
+    extra_fields = {}
     session = requests.session()
-    # url = "https://profiles.doe.mass.edu/statereport/mcas.aspx"
     url = ""
     data_frame = None
     xlsfn = None
@@ -77,13 +110,29 @@ class MCASExtract:
         self.url = mcas_url
         resp = session.get(self.url)
         if resp.status_code != 200:
-            raise Exception("Bad http code of {}".format(resp.status_code))
-        debug("Parsing form at {}".format(self.url))
+            raise MCASException(f"Bad http code of {resp.status_code}")
+        debug(f"Parsing form at {self.url}")
 
         bs1 = BeautifulSoup(resp.content, features="html.parser")
         forms = bs1.find_all("form")
-
-        debug("forms is {}".format(forms[1]))
+        if len(forms) == 0:
+            error("Error: Couldn't find any forms at url {}".format(self.url))
+            error("Please check the page in a browser.  Here's what the page shows:")
+            # system could be down for maintenance, try to see what the page says
+            plain_text = bs1.get_text()
+            # Clean up the text:
+            # 1. Strip leading/trailing whitespace
+            cleaned_text = plain_text.strip()
+            # 2. Replace multiple newlines with a single newline
+            cleaned_text = re.sub(r'\n\s*\n+', '\n\n', cleaned_text)
+            # 3. Optionally, remove any extra spaces within the lines
+            cleaned_text = re.sub(r'[ \t]+', ' ', cleaned_text)
+            print(cleaned_text)
+            raise MCASException("Error: couldn't find form at {}".format(self.url))
+        try:
+            debug('forms is {}'.format(forms[1]))
+        except MCASException as e:
+            pass
 
         selects = forms[1].find_all("select")
         # find all the other hidden input fields and include them in the request
@@ -94,12 +143,12 @@ class MCASExtract:
         # loop over form data and capture all the different possible select fields
         for s in selects:
             options = s.find_all("option")
-            debug("select {}".format(s.attrs['name']))
+            debug(f"select {s.attrs['name']}")
             fieldname = s.attrs['name']
-            self.reports[fieldname] = list()
+            self.reports[fieldname] = []
             for o in options:
                 v = o.attrs['value']
-                debug("--->  {}".format(v))
+                debug(f"--->  {v}")
                 self.reports[fieldname].append(v)
             self.reports['ctl00$ContentPlaceHolder1$hfExport'] = "Excel"
 
@@ -111,10 +160,10 @@ class MCASExtract:
         # debug("report object is: {}".format(reports))
         if self.reports is None:
             print("Error:  Can't find selects information.  Is the URL correct?")
-            exit(-1)
-        debug("Showing possible options for page {}".format(self.url))
+            sys.exit(-1)
+        debug(f"Showing possible options for page {self.url}")
         for x in self.reports:
-            debug("{} => {}".format(x, self.reports[x]))
+            debug(f"{x} => {self.reports[x]}")
         return self.reports
 
     def print_report_options(self):
@@ -123,13 +172,13 @@ class MCASExtract:
 
         if self.reports is None:
             print("Error:  Can't find select boxes information. Is the URL Correct?")
-            exit(-1)
-        print("Showing possible options for page {}".format(self.url))
+            sys.exit(-1)
+        print(f"====   Showing possible options for page {self.url}")
         for x in self.reports:
-            print("request_params['{}'] = {}".format(x, self.reports[x]))
+            print(f"request_params['{x}'] = {self.reports[x]}")
 
-        if "-d" in sys.argv:
-            quit()
+        if "-q" in sys.argv:
+            sys.exit()
 
         return self.reports
 
@@ -147,7 +196,7 @@ class MCASExtract:
 
         # Check to see if the requested param values are in our report dictionary
         for z in params:
-            if type(params[z]) == list:
+            if type(params[z]) is list:
                 for x in params[z]:
                     if x not in self.reports[z]:
                         raise MCASException("Invalid parameter {} in field {}".format(params[z], z))
@@ -155,28 +204,20 @@ class MCASExtract:
                 if params[z] not in self.reports[z]:
                     raise MCASException("Invalid parameter {} in field {}".format(params[z], z))
 
-    def get_report(self, parameters):
-
-        param2 = dict()
-        for a in parameters['ctl00$ContentPlaceHolder1$ddReportType']:
-            for b in parameters['ctl00$ContentPlaceHolder1$ddYear']:
-                for c in parameters['ctl00$ContentPlaceHolder1$ddGrade']:
-                    for d in parameters['ctl00$ContentPlaceHolder1$ddSchoolType']:
-                        for e in parameters['ctl00$ContentPlaceHolder1$ddSubGroup']:
-                            param2['ctl00$ContentPlaceHolder1$ddReportType'] = a
-                            param2['ctl00$ContentPlaceHolder1$ddYear'] = b
-                            param2['ctl00$ContentPlaceHolder1$ddGrade'] = c
-                            param2['ctl00$ContentPlaceHolder1$ddSchoolType'] = d
-                            param2['ctl00$ContentPlaceHolder1$ddSubGroup'] = e
-                            param2['ctl00$ContentPlaceHolder1$hfExport'] = "Excel"
-
-                            self.get_report_real(parameters=param2)
-                            # now add a year column
-                            # rpt.add_column(0, 'Year', '2001')
-                            # filenamebase = "{}-{}-{}-{}-{}.csv".format(a, b, c, d, e)
-                            # rpt.write_csv(filenamebase)
-
     def get_report_real(self, parameters):
+        """
+        Executes a real report request using the given parameters.
+
+        Args:
+            parameters (dict): A dictionary of parameters for the report request.
+
+        Returns:
+            pandas.DataFrame: The data frame containing the report data.
+
+        Raises:
+            MCASException: If the report request parameters are invalid.
+            Exception: If the HTTP request fails or the data cannot be decoded.
+        """
         reqdict = parameters
         if ('ctl00$ContentPlaceHolder1$hfExport' and 'hfExport') not in reqdict:
             reqdict['ctl00$ContentPlaceHolder1$hfExport'] = "Excel"
@@ -189,50 +230,29 @@ class MCASExtract:
 
         for r in reqdict:
             debug("{} = {}".format(r, reqdict[r]))
-        # debug("Requesting:{}".format(reqdict))
         final_request = dict()
 
         # merge all the on-purpose fields and the hidden fields together
         for z in self.extra_fields:
             final_request[z] = self.extra_fields[z]
-        # do this second so it overwrites anything in extra_fields
+        # do this second, so it overwrites anything in extra_fields
         for z in reqdict:
             final_request[z] = reqdict[z]
 
-        # print("Final_request is {}".format(final_request))
-        # for i in final_request:
-        #     print("arr[{}] = {}".format(i, final_request[i]))
         try:
             res = self.session.post(self.url, final_request)
             if res.status_code != 200:
-                raise Exception("Bad http code of {}".format(res.status_code))
-        except Exception as e:
+                raise MCASException("Bad http code of {}".format(res.status_code))
+        except MCASException as e:
             debug("Request Error while accessing {} : {}".format(self.url, e))
             quit()
 
         try:
             debug("request response was {}".format(res))
             debug("data back is: {}".format(res.content))
-            # tfile1 = open("content_dump.html", "wb")
-            # tfile1.write(res.content)
-            # tfile1.close()
-
-            # self.data_frame = pd.read_csv(res.content)
-            # self.data_frame = pd.read_csv(res.content, engine='xlrd')
-
-            # wb = load_workbook(filename=BytesIO(res.content))
-            # wb.active = 0
-            # ws = wb[0]
-            # self.data_frame = pd.DataFrame(ws.values)
             excel_data = BytesIO(res.content)
 
             self.data_frame = pd.read_excel(excel_data, engine='openpyxl')
-            # any processing of data (adding columns, etc) goes here.
-            # Here we chop off the first (header) row
-            # before saving as a CSV for later concatenation
-            # df = self.data_frame.iloc[1:, :]
-            # now add a year column
-            # self.data_frame.insert(loc=0, column='Year', value=year, allow_duplicates=True)
             return self.data_frame
         except Exception as e:
             print("Fatal Error: Decode of data failed: {}".format(e))
@@ -247,16 +267,14 @@ class MCASExtract:
     def get_url(self):
         return self.url
 
-    def set_url(self, theurl):
-        self.url = theurl
-
     # Inserts a column into the data frame at the specified zero-index-based location.
     # All parameters are required
     def add_column(self, location, column_name, column_value):
         if self.data_frame is None:
-            raise Exception("Error: Data Frame not set")
+            raise MCASException("Error: Data Frame not set")
 
-        self.data_frame.insert(loc=location, column=column_name, value=column_value, allow_duplicates=True)
+        self.data_frame.insert(loc=location, column=column_name, value=column_value,
+                               allow_duplicates=True)
 
     # Removes the first row of the data frame
     def remove_header_row(self):
@@ -264,20 +282,8 @@ class MCASExtract:
             raise MCASException("Error: Data Frame not set")
         self.data_frame = self.data_frame.iloc[1:, :]
 
-    def write_xlsx(self, xlsxfilename=None):
-        wb = Workbook()
-        ws = wb.active
-
-
-        for r in dataframe_to_rows(self.data_frame, index=True, header=True):
-            ws.append(r)
-
-        if os.path.exists(xlsxfilename):
-            print("WARNING: Overwriting file {}".format(xlsxfilename))
-        wb.save(xlsxfilename)
 
     def write_csv(self, csvfilename=None):
-        writefn = ''
         if self.data_frame is None:
             error("Data Frame is not set")
             exit(-1)
@@ -295,20 +301,27 @@ class MCASExtract:
             print("WARNING: Overwriting file {}".format(writefn))
         self.data_frame.to_csv(writefn, header=False, index=False)
 
-
-    def process_reports(self, request_params, report, output_directory, sleep_time=10):
+    @staticmethod
+    def process_reports(request_params, report, out_directory, sleep_time=10,
+                        modify_report_func=None):
         """
         Process reports by looping through all combinations of request parameters,
         fetching reports, and saving them as CSV files.
 
         Args:
-            request_params (dict): A dictionary where keys are parameter names and values are lists of possible values.
+            request_params (dict): A dictionary where keys are parameter names and values are
+            lists of possible values.
             report: The report object with methods to manipulate and export data.
-            output_directory (str): Directory where CSV files will be saved.
+            out_directory (str): Directory where CSV files will be saved.
             sleep_time (int): Time to wait between each request (in seconds).
+            :param sleep_time:
+            :param out_directory:
+            :param report:
+            :param request_params:
+            :param modify_report_func: passed in function to modify the report
         """
 
-        print("Script will request the following parameters: ")
+        print("====  Script will request the following parameters: ")
         for key, values in request_params.items():
             print(f"request_params['{key}'] = {values}")
 
@@ -329,15 +342,21 @@ class MCASExtract:
                 # Call report methods
                 report.check_parameters = False
                 report.get_report_real(parameters=param2)
+
+                # We always remove the header row, per Matt
                 report.remove_header_row()
 
                 # Add necessary columns (assuming the parameter names are part of the column names)
                 for i, key in enumerate(param_keys):
                     report.add_column(i, key.split('$')[-1], param2[key])
 
+                # Optionally apply the modification function, if provided
+                if modify_report_func:
+                    modify_report_func(report, param2)
+
                 # Create a CSV filename based on parameter values
                 filename = "-".join(map(str, combination)) + ".csv"
-                csvfilenamebase = os.path.join(output_directory, filename)
+                csvfilenamebase = os.path.join(out_directory, filename)
 
                 # Ensure the directory exists
                 os.makedirs(os.path.dirname(csvfilenamebase), exist_ok=True)
@@ -350,10 +369,9 @@ class MCASExtract:
             exit(-1)
 
 
-
-
 def error(lstr):
     print(lstr)
+
 
 def log(lstr):
     print(lstr)
@@ -364,137 +382,4 @@ def debug(lstr):
 
     if isDebug:
         print(lstr)
-
-
-# Init function will go get the specified page and parse it for various form select values it contains
-# and put them into the "reports" global, which is a dict with form names as the key and possible values as
-# a list...so:
-# reports['ctl00$ContentPlaceHolder1$ddYear'] = ['2021', '2020', '2019'...]
-# ...where the values are read from the form.  This is helpful in knowing what the possible values are
-# for any given URL.  You have to always call init() before doing anything else in the main part of the script,
-# as it sets up a number of variables (& cookies, etc) that are needed to get the reports.
-def init():
-    global reports, session
-    resp = session.get(report_url)
-    if resp.status_code != 200:
-        raise Exception("Bad http code of {}".format(resp.status_code))
-    debug("Parsing form at {}".format(report_url))
-    # print("resp is {}".format(resp.content))
-    # with open(filename, mode='wb') as localfile:
-    #     localfile.write(resp.content)
-
-    bs1 = BeautifulSoup(resp.content, features="html.parser")
-    forms = bs1.find_all("form")
-
-    debug("forms is {}".format(forms[1]))
-
-    selects = forms[1].find_all("select")
-    # find all the other hidden input fields and include them in the request
-    extra_inputs = forms[1].find_all("input")
-    for ei in extra_inputs:
-        extra_fields[ei.attrs['name']] = ei.attrs['value']
-
-    # loop over form data and capture all the different possible select fields
-    for s in selects:
-        options = s.find_all("option")
-        debug("select {}".format(s.attrs['name']))
-        fieldname = s.attrs['name']
-        reports[fieldname] = list()
-        for o in options:
-            v = o.attrs['value']
-            debug("--->  {}".format(v))
-            reports[fieldname].append(v)
-
-    # at this point, the reports object should contain all values for the various dropdowns
-    # debug("report object is: {}".format(reports))
-    if list_options:
-        print("Showing possible options for page {}".format(report_url))
-        for x in reports:
-            print("{} => {}".format(x, reports[x]))
-
-        exit()
-    debug("now formulating request to {}".format(report_url))
-
-
-# perform the get
-def get_mcas_data(url, output_directory='./', report_type='DISTRICT',
-                  year='2018', grade='AL', school_type='ALL', sub_group='AL:AL'):
-    global report_url, session
-    res = None
-    reqdict = dict()
-    reqdict['ctl00$ContentPlaceHolder1$hfExport'] = "Excel"
-    # extra_fields will overwrite the report
-
-    # report type one of DISTRICT, SCHOOL, COLLABORATIVE
-    reqdict['ctl00$ContentPlaceHolder1$ddReportType'] = report_type
-
-    # report year
-    reqdict['ctl00$ContentPlaceHolder1$ddYear'] = year
-
-    # Grade - AL, 03, 04, 05, 06, 07, 08, 10, HS
-    reqdict['ctl00$ContentPlaceHolder1$ddGrade'] = grade
-
-    # SchoolType: ALL, Elementary School, Elementary - Middle School,
-    #             Middle School,  Middle - High School or K - 12, High School
-    reqdict['ctl00$ContentPlaceHolder1$ddSchoolType'] = school_type
-
-    # sub groups - AL:AL, ED:N, ED:Y, FL:N, FL:Y, GE:01, GE:02, HN:Y, MG:Y, MH:Y, RA1:01, RA1:02, RA1:03, RA1:04,
-    #              RA1:06, RA1:15, RA1:20, SS:FLEP, SS:LEP, SS:LEPFLEP, SS:everELL, SS:SPED, T1:0,
-    #              T1:1, SS:Non-SPED, FT:Y, HL:Y, MT:Y
-    reqdict['ctl00$ContentPlaceHolder1$ddSubGroup'] = sub_group
-    reqdict['ctl00$ContentPlaceHolder1$hfExport'] = "Excel"
-    for r in reqdict:
-        debug("{} = {}".format(r, reqdict[r]))
-    # debug("Requesting:{}".format(reqdict))
-    final_request = dict()
-
-    # merge all the on-purpose fields and the hidden fields together
-    for z in extra_fields:
-        final_request[z] = extra_fields[z]
-    for z in reqdict:
-        final_request[z] = reqdict[z]
-
-    # make sure there's a slash on the end
-    output_directory = abspath(output_directory)
-    filenamebase = "{}-{}-{}-{}-{}".format(report_type, year, grade, school_type, sub_group)
-    filenamebase = os.path.join(output_directory, filenamebase)
-    xlsfile = "{}.xlsx".format(filenamebase).replace(" ", "_")
-    csvfile = "{}.csv".format(filenamebase).replace(" ", "_")
-    try:
-        res = session.post(url, final_request)
-        if res.status_code != 200:
-            raise Exception("Bad http code of {}".format(res.status_code))
-    except Exception as e:
-        debug("Request Error while accessing {} : {}".format(url, e))
-        quit()
-
-    try:
-        debug("request response was {}".format(res))
-        excel_file = BytesIO(res.content)
-
-        # Use read_excel with the BytesIO object
-        df = pd.read_excel(excel_file)
-        # log("Data Preview:\n {}".format(df))
-
-        # any processing of data (adding columns, etc) goes here.
-        # Here we chop off the first (header) row
-        # before saving as a CSV for later concatenation
-        df = df.iloc[1:, :]
-        # now add a year column
-        df.insert(loc=0, column='Year', value=year, allow_duplicates=True)
-        # output data to .xlsx and .csv files
-        log("Outputting {}".format(xlsfile))
-        log("Outputting {}".format(csvfile))
-        # with open(xlsfile, mode='wb') as localfile:
-        #     localfile.write(res.content)
-        # with open(xlsfile, mode='wb') as localfile:
-        #     localfile.write(exceldata)
-        # df.to_excel(xlsfile)
-        df.to_excel(xlsfile)
-        df.to_csv(csvfile, index=False, header=False)
-
-    except Exception as e:
-        print("Fatal Error: Decode of data failed: {}".format(e))
-
-
 

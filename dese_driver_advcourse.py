@@ -1,5 +1,6 @@
-from mcas_library import *
 from time import sleep
+
+from mcas_library import *
 
 # initialize the extractor object
 report = MCASExtract("https://profiles.doe.mass.edu/statereport/advcoursecomprate.aspx")
@@ -19,7 +20,8 @@ report.print_report_options()
 request_params = dict()
 request_params['ctl00$ContentPlaceHolder1$ddReportType'] = ['DISTRICT']
 request_params['ctl00$ContentPlaceHolder1$ddYear'] = ['2020', '2021']
-request_params['ctl00$ContentPlaceHolder1$ddSubgroup'] = ['5', '153', '12', '95', '99', '87', '86', '88', '89', '92', '91', '90']
+request_params['ctl00$ContentPlaceHolder1$ddSubgroup'] = ['5', '153', '12', '95', '99', '87', '86', '88', '89', '92',
+                                                          '91', '90']
 
 print("Requesting following parameters: ")
 for req_param in request_params:
@@ -43,7 +45,7 @@ try:
                 report.check_parameters = False
                 report.get_report_real(parameters=param2)
                 report.remove_header_row()
-                        
+
                 # now add necessary columns
                 report.add_column(0, 'Year', b)
                 report.add_column(1, 'Subgroup', c)

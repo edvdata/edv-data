@@ -2,7 +2,12 @@ from mcas_library import *
 from time import sleep
 
 # initialize the extractor object
-report = MCASExtract("https://profiles.doe.mass.edu/statereport/teacherbyracegender.aspx")
+try:
+    report = MCASExtract("https://profiles.doe.mass.edu/statereport/teacherbyracegender.aspx")
+except MCASException as e:
+    print("MCASExtract Error: {}".format(e))
+    sys.exit()
+
 
 # the prefix for this report
 output_prefix = "STAFF_DIVERSITY_REPORT"
@@ -16,45 +21,31 @@ print("Requesting fields for URL: {}".format(report.get_url()))
 report.print_report_options()
 # quit()
 # Set the parameters we'd like to loop over
-request_params = dict()
-request_params['ctl00$ContentPlaceHolder1$ddReportType'] = ['DISTRICT', 'SCHOOL']
-request_params['ctl00$ContentPlaceHolder1$ddYear'] = ['2023']
-request_params['ctl00$ContentPlaceHolder1$ddDisplay'] = ['NUM']
-request_params['ctl00$ContentPlaceHolder1$ddClassification'] = ['1100']
+request_params = {
+    'ctl00$ContentPlaceHolder1$ddReportType': ['DISTRICT', 'SCHOOL'],
+    'ctl00$ContentPlaceHolder1$ddYear': ['2023'],
+    'ctl00$ContentPlaceHolder1$ddDisplay': ['NUM'],
+    'ctl00$ContentPlaceHolder1$ddClassification': ['1100']
+}
 
-print("Requesting following parameters: ")
-for req_param in request_params:
-    print("request_params['{}'] = {}".format(req_param, request_params[req_param]))
+
+def custom_modify_report(report_file, params):
+    # add custom columns to the report at the report level
+    year = params.get('ctl00$ContentPlaceHolder1$ddYear', 'Unknown Year')
+    classification = params.get('ctl00$ContentPlaceHolder1$ddClassification', 'Unknown Classification')
+    report_file.add_column(0, 'Year', year)
+    report_file.add_column(0, 'Classification', classification)
+    print(f"Modified report to add year: {year} and classification: {classification}")
+
+
+''' Start of main driver'''
 
 try:
-    param2 = dict()
-    for a in request_params['ctl00$ContentPlaceHolder1$ddReportType']:
-        for b in request_params['ctl00$ContentPlaceHolder1$ddYear']:
-            for c in request_params['ctl00$ContentPlaceHolder1$ddDisplay']:
-                for d in request_params['ctl00$ContentPlaceHolder1$ddClassification']:
-                    param2['ctl00$ContentPlaceHolder1$ddReportType'] = a
-                    param2['ctl00$ContentPlaceHolder1$ddYear'] = b
-                    param2['ctl00$ContentPlaceHolder1$ddDisplay'] = c
-                    param2['ctl00$ContentPlaceHolder1$ddClassification'] = d
+    sleep_time = 5  # Optional, can be omitted if you want the default
+    report.process_reports(request_params, report, output_directory, sleep_time,
+                           modify_report_func=custom_modify_report)
 
-                    sleep(0.5)
+except MCASException as e:
+    print("MCASExtract Error: {}".format(e))
+    sys.exit(-1)
 
-                    print("Requesting following parameters: ")
-                    for req_param in param2:
-                        print("request_params['{}'] = {}".format(req_param, param2[req_param]))
-
-                    report.check_parameters = False
-                    report.get_report_real(parameters=param2)
-                    report.remove_header_row()
-                            
-                    # now add necessary columns
-                    report.add_column(0, 'Year', b)
-                    report.add_column(0, 'Classification', d)
-
-                    csvfilenamebase = "{}-{}.csv".format(a, b)
-                    csvfilenamebase = os.path.join(output_directory, a, b, csvfilenamebase)
-                    report.write_csv(csvfilenamebase)
-
-except MCASException as z:
-    print("MCASExtract Error: {}".format(z))
-    exit(-1)
