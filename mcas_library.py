@@ -161,7 +161,7 @@ class MCASExtract:
         if self.reports is None:
             print("Error:  Can't find selects information.  Is the URL correct?")
             sys.exit(-1)
-        debug(f"Showing possible options for page {self.url}")
+        debug(f"Showing all possible options for page {self.url}")
         for x in self.reports:
             debug(f"{x} => {self.reports[x]}")
         return self.reports
@@ -173,7 +173,7 @@ class MCASExtract:
         if self.reports is None:
             print("Error:  Can't find select boxes information. Is the URL Correct?")
             sys.exit(-1)
-        print(f"====   Showing possible options for page {self.url}")
+        print(f"\n====   Showing ALL possible options for page {self.url}")
         for x in self.reports:
             print(f"request_params['{x}'] = {self.reports[x]}")
 
@@ -321,7 +321,7 @@ class MCASExtract:
             :param modify_report_func: passed in function to modify the report
         """
 
-        print("====  Script will request the following parameters: ")
+        print("\n====  Script will request the following parameters: ")
         for key, values in request_params.items():
             print(f"request_params['{key}'] = {values}")
 

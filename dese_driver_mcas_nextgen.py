@@ -1,5 +1,4 @@
 from mcas_library import *
-from time import sleep
 
 # initialize the extractor object
 report = MCASExtract("https://profiles.doe.mass.edu/statereport/nextgenmcas.aspx")
@@ -19,7 +18,8 @@ request_params = {
     'ctl00$ContentPlaceHolder1$ddReportType': ['SCHOOL', 'DISTRICT'],
     'ctl00$ContentPlaceHolder1$ddYear': ['2023'],
     'ctl00$ContentPlaceHolder1$ddGrade': ['03', '04', '05', '06', '07', '08', '10', 'AL'],
-    'ctl00$ContentPlaceHolder1$ddSubGroup': ['100', '201', '202', '601', '602', '501', '502', '503', '504', '505', '506', '507', '801', '401', '301', '302']
+    'ctl00$ContentPlaceHolder1$ddSubGroup': ['100', '201', '202', '601', '602', '501', '502', '503',
+                                             '504', '505', '506', '507', '801', '401', '301', '302']
 }
 
 
@@ -45,4 +45,3 @@ try:
 except MCASException as e:
     print("MCASExtract Error: {}".format(e))
     sys.exit(-1)
-

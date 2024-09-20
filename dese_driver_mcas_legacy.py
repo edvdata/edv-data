@@ -1,5 +1,4 @@
 from mcas_library import *
-from time import sleep
 
 # initialize the extractor object
 report = MCASExtract("https://profiles.doe.mass.edu/statereport/mcas.aspx")
@@ -19,9 +18,12 @@ request_params = {
     'ctl00$ContentPlaceHolder1$ddReportType': ['DISTRICT'],
     'ctl00$ContentPlaceHolder1$ddYear': ['2023'],
     'ctl00$ContentPlaceHolder1$ddGrade': ['03', '04', '05', '06', '07', '08', '10', 'AL'],
-    'ctl00$ContentPlaceHolder1$ddSchoolType':  ['ALL'],
-    'ctl00$ContentPlaceHolder1$ddSubGroup': ['AL:AL', 'FL:N', 'FL:Y', 'ED:N', 'ED:Y', 'HN:Y', 'RA1:01', 'RA1:02', 'RA1:03', 'RA1:04', 'RA1:06', 'RA1:15', 'RA1:20', 'SS:LEP', 'SS:SPED', 'SS:Non-SPED']
+    'ctl00$ContentPlaceHolder1$ddSchoolType': ['ALL'],
+    'ctl00$ContentPlaceHolder1$ddSubGroup': ['AL:AL', 'FL:N', 'FL:Y', 'ED:N', 'ED:Y', 'HN:Y',
+                                             'RA1:01', 'RA1:02', 'RA1:03', 'RA1:04', 'RA1:06',
+                                             'RA1:15', 'RA1:20', 'SS:LEP', 'SS:SPED', 'SS:Non-SPED']
 }
+
 
 def custom_modify_report(report_file, params):
     # add custom columns to the report at the report level
@@ -45,4 +47,3 @@ try:
 except MCASException as e:
     print("MCASExtract Error: {}".format(e))
     sys.exit(-1)
-

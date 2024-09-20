@@ -25,6 +25,7 @@ request_params = {
     'ctl00$ContentPlaceHolder1$ddSubgroup': ['ALL', 'FE', 'MA', 'ED']
 }
 
+
 def custom_modify_report(report, params):
     # add custom columns to the report at the report level
     year = params.get('ctl00$ContentPlaceHolder1$ddYear', 'Unknown Year')
@@ -39,11 +40,12 @@ def custom_modify_report(report, params):
 
     print(f"Modified report with year: {year}, subgroup: {subgroup}")
 
-
+''' Start of main driver'''
 
 try:
     sleep_time = 5  # Optional, can be omitted if you want the default
-    report.process_reports(request_params, report, output_directory, sleep_time, modify_report_func=custom_modify_report)
+    report.process_reports(request_params, report, output_directory, sleep_time,
+                           modify_report_func=custom_modify_report)
 
 except Exception as e:
     print(e)
