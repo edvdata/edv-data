@@ -2,6 +2,46 @@ from time import sleep
 
 from mcas_library import *
 
+# Note- data in database only goes to 2022
+# dict to do subgroup conversion:
+options_dict = {
+    "5": "All Students",
+    "10": "Male",
+    "11": "Female",
+    "12": "High Needs",
+    "9": "Low income",
+    "95": "LEP English learner",
+    "99": "Students with disabilities",
+    "87": "African American/Black",
+    "86": "American Indian or Alaskan Native",
+    "88": "Asian",
+    "89": "Hispanic or Latino",
+    "92": "Multi-race, non-Hispanic or Latino",
+    "91": "Native Hawaiian or Pacific Islander",
+    "90": "White"
+}
+
+# SWD = Students with disabilities?
+# EL = English learner?
+# subgroup mapping
+options_dict = {
+    "5": "All Students",
+    "9": "Low Income",
+    "10": "Male",
+    "11": "Female",
+    "12": "High Needs",
+    "86": "Native American/Alaskan Native",
+    "87": "Black",
+    "88": "Asian",
+    "89": "Hispanic/Latino",
+    "90": "White",
+    "91": "Native Hawaiian/Pacific Islander",
+    "92": "Multi-Race, Non-Hispanic",
+    "95": "LEP English learner",
+    "99": "SWD"
+}
+
+
 # initialize the extractor object
 report = MCASExtract("https://profiles.doe.mass.edu/statereport/advcoursecomprate.aspx")
 
@@ -16,20 +56,37 @@ output_directory = os.path.join(output_directory, output_prefix)
 report.print_report_options()
 
 # Set the parameters we'd like to loop over
+# NOTE: this form has subgroups with different names than other tables.
+#   Also- it appears that subgroup names changed over the years, so if you
+#         select 2020 for the year, subgroup 153 appears in the options as "Economically Disadvantaged",
+#         which should map to 'low income' but they have different codes.
+
+# ALSO- Depending on the year you choose, the page dynamically reconfigures itself via javascript
+
+# request_params = {
+#     'ctl00$ContentPlaceHolder1$ddReportType': ['DISTRICT'],
+#     'ctl00$ContentPlaceHolder1$ddYear': ['2020', '2021'],
+#     'ctl00$ContentPlaceHolder1$ddSubgroup': ['5', '153', '12', '95', '99', '87', '86', '88',
+#                                              '89', '92', '91', '90']
+# }
 request_params = {
     'ctl00$ContentPlaceHolder1$ddReportType': ['DISTRICT'],
-    'ctl00$ContentPlaceHolder1$ddYear': ['2020', '2021'],
-    'ctl00$ContentPlaceHolder1$ddSubgroup': ['5', '153', '12', '95', '99', '87', '86', '88',
-                                             '89', '92', '91', '90']
+    'ctl00$ContentPlaceHolder1$ddYear': ['2024'],
+    'ctl00$ContentPlaceHolder1$ddSubgroup': ['153']
 }
+
+def map_subgroup_code_to_string(code):
+    return options_dict.get(code, 'Unknown Subgroup')
+
 
 def custom_modify_report(report_file, params):
     # add custom columns to the report at the report level
     year = params.get('ctl00$ContentPlaceHolder1$ddYear', 'Unknown Year')
     subgroup = params.get('ctl00$ContentPlaceHolder1$ddSubgroup', 'Unknown Subgroup')
 
-    report_file.add_column(0, 'Year', year)
-    report_file.add_column(1, 'Subgroup', subgroup)
+    report_file.add_column(0, 'school_yr', year)
+    subgroup_translation = map_subgroup_code_to_string(subgroup)
+    report_file.add_column(1, 'subgroup', subgroup_translation)
 
     print(
         f"Modified report to add year: {year} subgroup: {subgroup}")

@@ -57,6 +57,38 @@ session = requests.session()
 list_options = False
 reports = {}
 
+# create an array based on these codes:
+# ALL,All Students
+# FE,Female
+# MA,Male
+# ED,Economically Disadvantaged
+# HN,High Needs
+# LEP,English learner
+# FL,Low Income
+# SWD,Students with disabilities
+# AA,African American/Black
+# AI,American Indian or Alaskan Native
+# AS,Asian
+# HI,Hispanic or Latino
+# MR,Multi-race, non-Hispanic or Latino
+# NH,Native Hawaiian or Pacific Islander
+# WH,White
+student_codes = {
+    'ALL': 'All Students',
+    'AS': 'Asian',
+    'AA': 'Black',
+    'FE': 'Female',
+    'HN': 'High Needs',
+    'HI': 'Hispanic or Latino',
+    'FL': 'Low Income',
+    'MA': 'Male',
+    'AI': 'Native American/Alaskan Native',
+    'MR': 'Multi-Race, Non-Hispanic',
+    'NH': 'Native Hawaiian/Pacific Islander',
+    'SWD': 'Students with disabilities',
+    'WH': 'White'
+}
+
 
 # Create a class docstring
 
@@ -302,6 +334,11 @@ class MCASExtract:
         self.data_frame.to_csv(writefn, header=False, index=False)
 
     @staticmethod
+    def map_student_code_to_string(code):
+        return student_codes.get(code, "Unknown")
+
+
+    @staticmethod
     def process_reports(request_params, report, out_directory, sleep_time=10,
                         modify_report_func=None):
         """
@@ -347,8 +384,8 @@ class MCASExtract:
                 report.remove_header_row()
 
                 # Add necessary columns (assuming the parameter names are part of the column names)
-                for i, key in enumerate(param_keys):
-                    report.add_column(i, key.split('$')[-1], param2[key])
+                # for i, key in enumerate(param_keys):
+                #     report.add_column(i, key.split('$')[-1], param2[key])
 
                 # Optionally apply the modification function, if provided
                 if modify_report_func:

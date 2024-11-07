@@ -2,7 +2,11 @@ from mcas_library import *
 from time import sleep
 
 # initialize the extractor object
-report = MCASExtract("https://profiles.doe.mass.edu/statereport/accountability.aspx")
+try:
+    report = MCASExtract("https://profiles.doe.mass.edu/statereport/accountability.aspx")
+except MCASException as e:
+    print("MCASExtract Error: {}".format(e))
+    sys.exit()
 
 # the prefix for this report
 output_prefix = "ACCOUNTABILITY_REPORT"
