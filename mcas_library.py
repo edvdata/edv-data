@@ -305,8 +305,10 @@ class MCASExtract:
         if self.data_frame is None:
             raise MCASException("Error: Data Frame not set")
 
-        self.data_frame.insert(loc=location, column=column_name, value=column_value,
-                               allow_duplicates=True)
+        # self.data_frame.insert(loc=location, column=column_name, value=column_value,
+        #                        allow_duplicates=True)
+
+        self.data_frame.insert(location, column_name, column_value)
 
     # Removes the first row of the data frame
     def remove_header_row(self):
@@ -367,6 +369,8 @@ class MCASExtract:
         param_values = request_params.values()
 
         try:
+            filenamearray = []
+            firstfile = True
             for combination in itertools.product(*param_values):
                 # Build the parameter dictionary dynamically
                 param2 = dict(zip(param_keys, combination))
@@ -379,10 +383,7 @@ class MCASExtract:
                 # Call report methods
                 report.check_parameters = False
                 report.get_report_real(parameters=param2)
-
                 # We always remove the header row, per Matt
-                report.remove_header_row()
-
                 # Add necessary columns (assuming the parameter names are part of the column names)
                 # for i, key in enumerate(param_keys):
                 #     report.add_column(i, key.split('$')[-1], param2[key])
@@ -391,15 +392,28 @@ class MCASExtract:
                 if modify_report_func:
                     modify_report_func(report, param2)
 
+                if not firstfile:
+                    report.remove_header_row()
+
                 # Create a CSV filename based on parameter values
                 filename = "-".join(map(str, combination)) + ".csv"
                 csvfilenamebase = os.path.join(out_directory, filename)
 
                 # Ensure the directory exists
                 os.makedirs(os.path.dirname(csvfilenamebase), exist_ok=True)
-
+                filenamearray.append(csvfilenamebase)
                 # Write the CSV file
                 report.write_csv(csvfilenamebase)
+
+            # now we have a list of filenames, concatenate all of the CSV
+            # files into one final output
+            for filename in filenamearray:
+                if os.path.exists(filename):
+                    print(f"Concatenating {filename} into final_report.csv")
+                    with open(filename, 'rb') as f1:
+                        with open(os.path.join(out_directory, 'final_report.csv'), 'ab') as f2:
+                            f2.write(f1.read())
+
 
         except MCASException as e:
             print(f"MCASExtract Error: {e}")

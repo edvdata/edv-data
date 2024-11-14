@@ -21,9 +21,11 @@ print("Requesting fields for URL: {}".format(report.get_url()))
 report.print_report_options()
 # quit()
 # Set the parameters we'd like to loop over
+# Database: this may feed into DESE_District_Educators.Staff_Demographics
+
 request_params = {
     'ctl00$ContentPlaceHolder1$ddReportType': ['DISTRICT', 'SCHOOL'],
-    'ctl00$ContentPlaceHolder1$ddYear': ['2023'],
+    'ctl00$ContentPlaceHolder1$ddYear': ['2024'],
     'ctl00$ContentPlaceHolder1$ddDisplay': ['NUM'],
     'ctl00$ContentPlaceHolder1$ddClassification': ['1100']
 }

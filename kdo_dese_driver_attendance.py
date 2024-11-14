@@ -15,19 +15,22 @@ output_directory = os.path.join(output_directory, output_prefix)
 # display valid fields
 report.print_report_options()
 
+
+# Database: This report feeds into database table DESE_District_Students.Attendance
+
 # Set the parameters we'd like to loop over
 # 'ctl00$ContentPlaceHolder1$ddReportType': ['SCHOOL', 'DISTRICT'],
 request_params = {
     'ctl00$ContentPlaceHolder1$ddReportType': ['DISTRICT'],
     'ctl00$ContentPlaceHolder1$ddYear': ['2024EOY'],
-    'ctl00$ContentPlaceHolder1$ddStudentGroup': ['ALL', 'FE', 'MA', 'HN', 'LEP', 'FL', 'SWD',
-                                                 'AA', 'AI', 'AS', 'HI', 'MR', 'NH', 'WH'],
+    'ctl00$ContentPlaceHolder1$ddStudentGroup': ['ALL', 'FE', 'MA', 'HN'],
 }
 
 # request_params = dict()
 # request_params['ctl00$ContentPlaceHolder1$ddReportType'] = ['SCHOOL', 'DISTRICT']
 # request_params['ctl00$ContentPlaceHolder1$ddYear'] = ['2023EOY']
-# request_params['ctl00$ContentPlaceHolder1$ddStudentGroup'] = ['ALL', 'FE', 'MA', 'HN', 'LEP', 'FL', 'SWD', 'AA', 'AI', 'AS', 'HI', 'MR', 'NH', 'WH']
+# request_params['ctl00$ContentPlaceHolder1$ddStudentGroup'] = ['ALL', 'FE', 'MA', 'HN', 'LEP',
+# 'FL', 'SWD', 'AA', 'AI', 'AS', 'HI', 'MR', 'NH', 'WH']
 
 
 def custom_modify_report(report_file, params):
@@ -37,14 +40,12 @@ def custom_modify_report(report_file, params):
     # change year to exclude EOY
 
     # write code to check if year contains 'EOY' remove it from the string
-    if year.contains('EOY'):
-        year = year.substitute('EOY', '')
-    # if year[-3:] == 'EOY':
-    #     year = year[:-3]
+    if 'EOY' in year:
+        year = year.replace('EOY', '')
 
-    report_file.add_column(0, 'Year', year)
     student_str = report.map_student_code_to_string(studentgroup)
-    report_file.add_column(1, 'StudentGroup', student_str)
+    report_file.add_column(0, 'StudentGroup', student_str)
+    report_file.add_column(0, 'Year', year)
     print(f"Modified report to add year: {year} studentgroup: {studentgroup}")
 
 
