@@ -23,15 +23,36 @@ request_params = {
     'ctl00$ContentPlaceHolder1$ddSubgroup': ['10', '11']
 }
 
+student_codes = {
+    'ALL': 'All Students',
+    'AS': 'Asian',
+    'AA': 'Black',
+    'FE': 'Female',
+    'HN': 'High Needs',
+    'HI': 'Hispanic or Latino',
+    'FL': 'Low Income',
+    'MA': 'Male',
+    'AI': 'Native American/Alaskan Native',
+    'MR': 'Multi-Race, Non-Hispanic',
+    'NH': 'Native Hawaiian/Pacific Islander',
+    'SWD': 'Students with disabilities',
+    'WH': 'White'
+}
+
+
+def map_student_code_to_string(code):
+    return student_codes.get(code, "Unknown")
+
 
 def custom_modify_report(report_file, params):
     # add custom columns to the report at the report level
     year = params.get('ctl00$ContentPlaceHolder1$ddYear', 'Unknown Year')
     subgroup = params.get('ctl00$ContentPlaceHolder1$ddSubGroup', 'Unknown Subgroup')
 
+    mapped_subgroup = map_student_code_to_string(subgroup)
     report_file.add_column(0, 'Year', year)
-    report_file.add_column(1, 'Subgroup', subgroup)
-    print(f"Modified report to add year: {year} subgroup: {subgroup}")
+    report_file.add_column(1, 'Subgroup', mapped_subgroup)
+    print(f"Modified report to add year: {year} subgroup: {mapped_subgroup}")
 
 #
 # request_params = dict()
