@@ -388,6 +388,7 @@ class MCASExtract:
                 # for i, key in enumerate(param_keys):
                 #     report.add_column(i, key.split('$')[-1], param2[key])
 
+
                 # Optionally apply the modification function, if provided
                 if modify_report_func:
                     modify_report_func(report, param2)
