@@ -394,6 +394,7 @@ class MCASExtract:
 
                 if not firstfile:
                     report.remove_header_row()
+                    firstfile = False
 
                 # Create a CSV filename based on parameter values
                 filename = "-".join(map(str, combination)) + ".csv"
@@ -409,9 +410,9 @@ class MCASExtract:
             # files into one final output
             for filename in filenamearray:
                 if os.path.exists(filename):
-                    print(f"Concatenating {filename} into final_report.csv")
+                    print(f"Concatenating {filename} into combined_output.csv")
                     with open(filename, 'rb') as f1:
-                        with open(os.path.join(out_directory, 'final_report.csv'), 'ab') as f2:
+                        with open(os.path.join(out_directory, 'combined_output.csv'), 'ab') as f2:
                             f2.write(f1.read())
 
 
