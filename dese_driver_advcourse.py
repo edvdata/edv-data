@@ -2,24 +2,6 @@ from time import sleep
 
 from mcas_library import *
 
-# Note- data in database only goes to 2022
-# dict to do subgroup conversion:
-options_dict = {
-    "5": "All Students",
-    "10": "Male",
-    "11": "Female",
-    "12": "High Needs",
-    "9": "Low income",
-    "95": "LEP English learner",
-    "99": "Students with disabilities",
-    "87": "African American/Black",
-    "86": "American Indian or Alaskan Native",
-    "88": "Asian",
-    "89": "Hispanic or Latino",
-    "92": "Multi-race, non-Hispanic or Latino",
-    "91": "Native Hawaiian or Pacific Islander",
-    "90": "White"
-}
 
 # SWD = Students with disabilities?
 # EL = English learner?
@@ -60,19 +42,13 @@ report.print_report_options()
 #   Also- it appears that subgroup names changed over the years, so if you
 #         select 2020 for the year, subgroup 153 appears in the options as "Economically Disadvantaged",
 #         which should map to 'low income' but they have different codes.
-
 # ALSO- Depending on the year you choose, the page dynamically reconfigures itself via javascript
 
-# request_params = {
-#     'ctl00$ContentPlaceHolder1$ddReportType': ['DISTRICT'],
-#     'ctl00$ContentPlaceHolder1$ddYear': ['2020', '2021'],
-#     'ctl00$ContentPlaceHolder1$ddSubgroup': ['5', '153', '12', '95', '99', '87', '86', '88',
-#                                              '89', '92', '91', '90']
-# }
 request_params = {
     'ctl00$ContentPlaceHolder1$ddReportType': ['DISTRICT'],
-    'ctl00$ContentPlaceHolder1$ddYear': ['2024'],
-    'ctl00$ContentPlaceHolder1$ddSubgroup': ['153']
+    'ctl00$ContentPlaceHolder1$ddYear': ['2022'],
+    'ctl00$ContentPlaceHolder1$ddSubgroup': ['5', '153', '12', '95', '99', '87', '86', '88',
+                                             '89', '92', '91', '90']
 }
 
 def map_subgroup_code_to_string(code):

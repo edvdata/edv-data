@@ -16,11 +16,14 @@ report.print_report_options()
 
 
 # Set the parameters we'd like to loop over
+# 'ctl00$ContentPlaceHolder1$ddReportType': ['SCHOOL', 'DISTRICT'],
+
 request_params = {
-    'ctl00$ContentPlaceHolder1$ddReportType': ['SCHOOL', 'DISTRICT'],
+    'ctl00$ContentPlaceHolder1$ddReportType': ['SCHOOL'],
     'ctl00$ContentPlaceHolder1$ddYear': ['2023'],
     'ctl00$ContentPlaceHolder1$ddRateType': ['4-Year:REG'],
-    'ctl00$ContentPlaceHolder1$ddSubgroup': ['5', '88','87', '11', '12', '89', '153', '10','86','92', '91', '99', '90', '95']
+    'ctl00$ContentPlaceHolder1$ddSubgroup': ['5', '88','87', '11', '12', '89', '153', '10',
+                                             '86','92', '91', '99', '90', '95']
 }
 
 student_codes = {
@@ -38,7 +41,6 @@ student_codes = {
     '99': 'SWD',
     '90': 'White',
     '95': 'EL',
-
 }
 #
 #

@@ -284,7 +284,9 @@ class MCASExtract:
             debug("data back is: {}".format(res.content))
             excel_data = BytesIO(res.content)
 
-            self.data_frame = pd.read_excel(excel_data, engine='openpyxl')
+            self.data_frame = pd.read_excel(excel_data, engine='openpyxl', thousands=',', header=1)
+            # self.remove_header_row()
+            # self.data_frame.to_csv("tmpoutput.csv", header=True, index=False)
             return self.data_frame
         except Exception as e:
             print("Fatal Error: Decode of data failed: {}".format(e))
@@ -317,7 +319,7 @@ class MCASExtract:
         self.data_frame = self.data_frame.iloc[1:, :]
 
 
-    def write_csv(self, csvfilename=None):
+    def write_csv(self, csvfilename=None, header=False):
         if self.data_frame is None:
             error("Data Frame is not set")
             exit(-1)
@@ -333,7 +335,7 @@ class MCASExtract:
         print("Writing CSV output to {}".format(writefn))
         if os.path.exists(writefn):
             print("WARNING: Overwriting file {}".format(writefn))
-        self.data_frame.to_csv(writefn, header=False, index=False)
+        self.data_frame.to_csv(writefn, header=header, index=False)
 
     @staticmethod
     def map_student_code_to_string(code):
@@ -341,7 +343,7 @@ class MCASExtract:
 
 
     @staticmethod
-    def process_reports(request_params, report, out_directory, sleep_time=10,
+    def process_reports(request_params, report, out_directory, sleep_time=5,
                         modify_report_func=None):
         """
         Process reports by looping through all combinations of request parameters,
@@ -393,10 +395,6 @@ class MCASExtract:
                 if modify_report_func:
                     modify_report_func(report, param2)
 
-                if not firstfile:
-                    report.remove_header_row()
-                    firstfile = False
-
                 # Create a CSV filename based on parameter values
                 filename = "-".join(map(str, combination)) + ".csv"
                 csvfilenamebase = os.path.join(out_directory, filename)
@@ -405,10 +403,16 @@ class MCASExtract:
                 os.makedirs(os.path.dirname(csvfilenamebase), exist_ok=True)
                 filenamearray.append(csvfilenamebase)
                 # Write the CSV file
-                report.write_csv(csvfilenamebase)
+                # We only want to write the header out if its the first file processed,
+                # since we concatenate them all at the end and we only want one header
+                writeheader = False
+                if firstfile:
+                    writeheader = True
+                firstfile = False
+                report.write_csv(csvfilenamebase, writeheader)
 
             # now we have a list of filenames, concatenate all of the CSV
-            # files into one final output
+            # files into one combined output
             for filename in filenamearray:
                 if os.path.exists(filename):
                     print(f"Concatenating {filename} into combined_output.csv")
@@ -419,7 +423,7 @@ class MCASExtract:
 
         except MCASException as e:
             print(f"MCASExtract Error: {e}")
-            exit(-1)
+            sys.exit(-1)
 
 
 def error(lstr):
